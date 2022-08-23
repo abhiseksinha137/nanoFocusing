@@ -1,0 +1,55 @@
+Reset;
+alpha=0.1/2;
+e1=1;
+e2=-18+1i*0.6;
+lda0=0.633e-6;
+c=3e8;
+w=2*pi*c/lda0;
+eta=5.2+1i*0.12;
+
+r0=1e-6;
+tList=linspace(0,2*pi/w,30);
+
+theta=linspace(0,pi/2,1000);
+r=linspace(6e-6,1e-9,1000);
+
+[R,TH]=meshgrid(r,theta);
+X=R.*cos(TH);
+Y=R.*sin(TH);
+%% Field Calculations
+writerObj = VideoWriter('video/E_theta.avi');
+writerObj.FrameRate = 2;
+open(writerObj);
+for i=1:length(tList)
+    
+    t=tList(i);
+    E_theta=1i*c/(w*e1) ./R.^(3/2) * (eta+1i/2).* besselk(1, eta*TH).*...
+        exp(1i*w*t + 1i*eta*log(R/r0));
+    
+    E_theta(TH<alpha)=nan;
+    
+    figure()
+    mesh(X,Y,real(E_theta)); view(0,90);
+    set(gca, 'colorscale', 'log')
+    xlabel('R'); ylabel('\theta');
+    colormap('jet');colorbar();
+    title(['t = ', num2str(t/tList(end), '%2.2f'), ' T'] );
+    clims=[1,1e8];
+    clim(gca,clims)
+    frame(i)=getframe(gcf);
+    drawnow;
+    writeVideo(writerObj, frame(i));
+    i
+    close all;
+end
+close(writerObj);
+% 
+% E_r=1i*c/(w*e1)*eta./R.^(3/2) .* besselk(0, eta*TH) .* exp(1i*eta*log(R/r0));
+% E_r(TH<alpha)=nan;
+% 
+% E_TH_Max=max(max(abs(E_theta)));
+% E_R_Max=max(max(abs(E_r)));
+% 
+
+
+
