@@ -8,11 +8,11 @@ em=-18+1i*0.6;      % Metal Permittivity
 gamma= 0.57721;      % Euler constant
 c=3e8;
 L=2.5e-6;             % Length Scale
-N=1000;             % Number of grid points
+N=2000;             % Number of grid points
 
 nFlat=sqrt(em*ed/(em+ed))
 z=linspace(-L,-2e-9, N);
-x=linspace(-L,L,N);
+x=linspace(-2e-6,2e-6,N);
 
 
 z1=0; z2=-2.5e-6; x1=2e-9; x2=50e-9;
@@ -55,21 +55,53 @@ km=sqrt(N.^2-em);
 kd=sqrt(N.^2-ed);
 
 figure()
-surf(XG,ZG,real(R), 'LineStyle','none');view(0,90);
+surf(XG,ZG,real(N), 'LineStyle','none');view(69,60);
+title('R')
 xlabel('X'); ylabel('Z')
 colormap('jet'); colorbar();
 set(gca, 'colorscale', 'log')
-formatPlot(gcf)
+formatPlot(gcf);
 
 %% Fields
 B=besseli(0,k0*km.*R)./besselk(0,k0*km.*R);
 Ez=THETA(R-RG).*besseli(0, k0*km.*RG)  + THETA(RG-R).* B.*besselk(0,k0*kd.*RG);
 
+Ex=THETA(R-RG).* 1i .* N./km .* besseli(1,k0*km.*RG) + ...
+    THETA(RG-R) *1i .*N./kd .* B .* besselk(1, k0*kd.*RG);
+
 figure()
-surf(XG,ZG,real(k0*km.*R), 'LineStyle','none');view(69,60);
+% surf(XG,ZG,abs(Ex), 'LineStyle','none');view(90,0);
+imagesc(real(Ez));
 xlabel('X'); ylabel('Z')
 colormap('jet'); colorbar();
 set(gca, 'colorscale', 'log')
 formatPlot(gcf)
 
+
+%% Pre-Exponential Factor
+RList=reshape(RList,[length(RList),1]);
+
+for i=1:length(RList)
+    RCone=RList(i);
+    rInt=linspace(0,RCone,100);
+    rInt2=linspace(RCone, L,500);
+    kappam=km(i,1);
+    kappad=kd(i,1);
+    
+    xm=k0*kappam*RCone;
+    xd=k0*kappad*RCone;
+    nR=n(i);
+    A(i)=real(conj(nR.*em)/abs(kappam)^2 * abs(besselk(0,xd))^2 * trapz(rInt, besseli(1, k0*kappam*rInt).^2 .* rInt)...
+        + conj(nR*ed)/abs(kappad)^2 * abs(besseli(0, xd))^2 * trapz(rInt2, besselk(1, k0*kappad*rInt2).^2 .*rInt2))^(-1/2);
+
+end
+A=reshape(A, [length(A),1]);
+ExFinal=Ex.*A;
+figure()
+surf(XG,ZG,real(ExFinal), 'LineStyle','none');view(90,0);
+xlabel('X'); ylabel('Z')
+colormap('jet'); colorbar();
+set(gca, 'colorscale', 'log')
+formatPlot(gcf)
+title('ExFinal')
 
